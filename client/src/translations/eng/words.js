@@ -326,7 +326,19 @@ var word_bank = {
     our_casino: "our Casino",
 
     //401
-    page_not_found_text: "Sorry, the page you are looking for does not exist. It might have been moved or deleted, or you might have typed the URL incorrectly."
+    page_not_found_text: "Sorry, the page you are looking for does not exist. It might have been moved or deleted, or you might have typed the URL incorrectly.",
+
+    // MetaMask and Web3 functionality
+    connect_wallet: "Connect Wallet",
+    connect_wallet_description: "Connect your MetaMask wallet to access the casino.",
+    connect_metamask: "Connect MetaMask",
+    wallet_connected: "Wallet Connected",
+    connected: "Connected",
+    connecting: "Connecting",
+    no_metamask: "Don't have MetaMask? ",
+    install_metamask: "Install MetaMask",
+    wallet_connection_required: "Please connect your wallet to continue.",
+    metamask_signin_description: "Sign in with your MetaMask wallet to play casino games."
 }
 
 export const wordsEng = (info)=>{

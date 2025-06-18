@@ -55,7 +55,21 @@ var constants = require('./var/constants')
 var database_config = constants.DATABASE[0]
 
 io.on('connection', function(socket) {
-  socket.on('signin_send', (data) => {  
+  socket.on('signin_send', (data) => {
+    // Validate wallet address is provided
+    if (!data.walletAddress) {
+      console.log('[warning] Sign-in attempt without wallet address')
+      try {
+        io.to(socket.id).emit('signin_read', { 
+          exists: false, 
+          error: 'wallet_connection_required' 
+        })
+      } catch(e) {
+        console.log('[error]', 'signin_read wallet validation error:', e)
+      }
+      return
+    }
+    
     database_config.sql = "SELECT * FROM casino_user;"
     database_config.sql += "SELECT * FROM login_user;"
     database_config.name = "db01"
@@ -86,12 +100,17 @@ io.on('connection', function(socket) {
             money: user_found[0].money, 
             device,
             profile_pic: user_found[0].profile_pic,
-            logs: logs.length
+            logs: logs.length,
+            walletAddress: data.walletAddress || null // Include wallet address if provided
           }
           try{
             io.to(socket.id).emit('signin_read', {exists: true, obj: obj})
           } catch(e){
             console.log('[error]','signin_read :', e)
+          }
+
+          if(data.walletAddress) {
+            console.log(`[info] User ${user_found[0].user} signed in with wallet: ${data.walletAddress}`)
           }
   
           // get_extra_data().then(function(res) {  
@@ -128,7 +147,21 @@ io.on('connection', function(socket) {
       }
     }) 
   })
-  socket.on('signup_send', (data) => {  
+  socket.on('signup_send', (data) => {
+    // Validate wallet address is provided
+    if (!data.walletAddress) {
+      console.log('[warning] Sign-up attempt without wallet address')
+      try {
+        io.to(socket.id).emit('signup_read', { 
+          exists: false, 
+          error: 'wallet_connection_required' 
+        })
+      } catch(e) {
+        console.log('[error]', 'signup_read wallet validation error:', e)
+      }
+      return
+    }
+    
     database_config.sql = 'SELECT * FROM casino_user WHERE email = "' + data.email + '"'
     database_config.name = "db02"
 		database(database_config).then(function(result){
@@ -146,7 +179,8 @@ io.on('connection', function(socket) {
           account_type: account_type, 
           money: user_money, 
           device: device,
-          profile_pic: profile_pic
+          profile_pic: profile_pic,
+          walletAddress: data.walletAddress || null // Include wallet address if provided
         }
         try{
           io.to(socket.id).emit('signup_read', {exists: false, obj: obj})
@@ -154,29 +188,9 @@ io.on('connection', function(socket) {
           console.log('[error]','signup_read :', e)
         } 
   
-        // get_extra_data().then(function(res) {  
-        //   let extra_data = {city: "", country: "", ip_address: ""} 
-        //   if(res && res.data){
-        //     extra_data = {
-        //       city: res.data.city ? res.data.city : "",
-        //       country: res.data.country_name ? res.data.country_name : "",
-        //       ip_address: res.data.ip? res.data.ip : "",
-        //     }
-        //   }
-        //   let timestamp = new Date().getTime() + ""   
-        //   let pass = JSON.stringify(encrypt(data.pass))
-
-        //   //insert new user in users and login tables
-        //   database_config.sql = "INSERT INTO casino_user (uuid, user, email, pass, account_type, money, signup) VALUES (?, ?, ?, ?, ?, ?, ?)"
-				// 	let payload = [uuid, data.user, data.email, pass, account_type, user_money, timestamp] 
-        //   database_config.name = "db03"
-        //   database(database_config, payload).then(function(result){
-				// 		let insertId = result.insertId
-        //     database_config.sql = 'INSERT INTO login_user (user_id, login_date, device, ip_address, city, country) VALUES (' + insertId + ', "' + timestamp + '", ' + device + ', "' + extra_data.ip_address + '", "' + extra_data.city + '", "' + extra_data.country + '");'
-        //     database_config.name = "db04"
-        //     database(database_config).then(function(result){})
-        //   })
-        // })
+        if(data.walletAddress) {
+          console.log(`[info] New user ${data.user} signed up with wallet: ${data.walletAddress}`)
+        }
       } else {        
         let array = result.filter(function(x){ //check if there already is an email with same username
           return x.user === data.user

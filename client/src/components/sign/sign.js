@@ -9,9 +9,11 @@ import Header from '../partials/header'
 import Language from '../settings/language'
 import SignIn from './signIn'
 import SignUp from './signUp'
+import MetaMaskConnect from './metamaskConnect'
 import { changeUser } from '../../reducers/auth'
 import { isEmpty, setCookie } from '../../utils/utils'
 import Loader from '../partials/loader'
+import useMetaMask from '../../utils/useMetaMask'
 
 function Sign(props) {
     const {lang, socket} = props
@@ -28,6 +30,15 @@ function Sign(props) {
     const [checkboxOne, setCheckboxOne] = useState(false)
     const [loaded, setLoaded] = useState(true)
     const [date, setDate] = useState('')
+    const [walletConnected, setWalletConnected] = useState(false)
+    const [walletAddress, setWalletAddress] = useState('')
+
+    const { isConnected, account } = useMetaMask()
+
+    useEffect(() => {
+        setWalletConnected(isConnected)
+        setWalletAddress(account)
+    }, [isConnected, account])
 
     function handleClick(choice){
         setErrorEmail(false)
@@ -45,6 +56,14 @@ function Sign(props) {
     }
 
     function signSubmit(data){
+        if (!walletConnected || !walletAddress) {
+            handleErrors("error", "wallet_connection_required")
+            return
+        }
+        
+        // Add wallet address to the payload
+        data.payload.walletAddress = walletAddress
+        
         setErrorEmail(false)
         setErrorUser(false)
         setErrorPass(false)
@@ -104,6 +123,11 @@ function Sign(props) {
                     break
             }
         }
+    }
+
+    function handleWalletConnected(address) {
+        setWalletConnected(true)
+        setWalletAddress(address)
     }
 
     useEffect(() => {
@@ -194,36 +218,54 @@ function Sign(props) {
                                             <p>{translate({lang: lang, info: "isMinor_sign"})}</p>
                                         </div> : <>
                                             <Header template="sign" lang={lang} />
-                                            <div className="sign_box">
-                                                <ul>
-                                                    <li id="signin_tab" className={signIn} onClick={()=>{handleClick('signIn')}}><span>{translate({lang: lang, info: "sign_in"})}</span></li>
-                                                    <li id="signup_tab" className={signUp} onClick={()=>{handleClick('signUp')}}><span>{translate({lang: lang, info: "sign_up"})}</span></li>
-                                                </ul>
-                                                {visible === "signIn" ? <SignIn signSubmit={(e)=>{signSubmit(e)}} lang={lang} socket={socket} /> : 
-                                                <SignUp signSubmit={(e)=>{signSubmit(e)}} lang={lang} socket={socket} />}
-                                            </div>
-                                            <div className="sign_extra_info">
-                                                {visible === "signIn" ? <p onClick={()=>handleForgotPassword()}>{translate({lang: lang, info: "signin_forgot_password"})}</p> : <>
-                                                <div className="checkbox_radio_container">
-                                                    <label>
-                                                        <input className="input_light" type="checkbox" name="checkbox1" checked={checkboxOne} onChange={()=>{handleChangeCheck("checkbox1")}}/>
-                                                        <h6>
-                                                            {translate({lang: lang, info: "i_agree_to"})}&nbsp;
-                                                            <span onClick={()=>handleLink("terms_cond")}>
-                                                                {translate({lang: lang, info: "terms_cond"})}
-                                                            </span>
-                                                            &nbsp;{translate({lang: lang, info: "and"})}&nbsp;
-                                                            <span onClick={()=>handleLink("policy_privacy")}>
-                                                                {translate({lang: lang, info: "policy_privacy"})}
-                                                            </span>
-                                                        </h6>
-                                                    </label>
+                                            <MetaMaskConnect
+                                                lang={lang} 
+                                                onWalletConnected={handleWalletConnected} 
+                                            />
+                                            {walletConnected && (
+                                                <>
+                                                    <div className="wallet_signin_divider">
+                                                        <span>{translate({lang: lang, info: "or"})}</span>
+                                                    </div>
+                                                    
+                                                    <div className="sign_box">
+                                                        <ul>
+                                                            <li id="signin_tab" className={signIn} onClick={()=>{handleClick('signIn')}}><span>{translate({lang: lang, info: "sign_in"})}</span></li>
+                                                            <li id="signup_tab" className={signUp} onClick={()=>{handleClick('signUp')}}><span>{translate({lang: lang, info: "sign_up"})}</span></li>
+                                                        </ul>
+                                                        {visible === "signIn" ? <SignIn signSubmit={(e)=>{signSubmit(e)}} lang={lang} socket={socket} /> : 
+                                                        <SignUp signSubmit={(e)=>{signSubmit(e)}} lang={lang} socket={socket} />}
+                                                    </div>
+                                                    <div className="sign_extra_info">
+                                                        {visible === "signIn" ? <p onClick={()=>handleForgotPassword()}>{translate({lang: lang, info: "signin_forgot_password"})}</p> : <>
+                                                        <div className="checkbox_radio_container">
+                                                            <label>
+                                                                <input className="input_light" type="checkbox" name="checkbox1" checked={checkboxOne} onChange={()=>{handleChangeCheck("checkbox1")}}/>
+                                                                <h6>
+                                                                    {translate({lang: lang, info: "i_agree_to"})}&nbsp;
+                                                                    <span onClick={()=>handleLink("terms_cond")}>
+                                                                        {translate({lang: lang, info: "terms_cond"})}
+                                                                    </span>
+                                                                    &nbsp;{translate({lang: lang, info: "and"})}&nbsp;
+                                                                    <span onClick={()=>handleLink("policy_privacy")}>
+                                                                        {translate({lang: lang, info: "policy_privacy"})}
+                                                                    </span>
+                                                                </h6>
+                                                            </label>
+                                                        </div>
+                                                        </>}
+                                                    </div>
+                                                </>
+                                            )}
+                                            {!walletConnected && (
+                                                <div className="wallet_connection_required">
+                                                    <p>{translate({lang: lang, info: "wallet_connection_required"})}</p>
                                                 </div>
-                                                </>}
-                                            </div>
+                                            )}
                                         </>}
                                     </div>
                                 </div> 
+                                
                                 {(() => {
                                     if(errorEmail || errorUser || errorPass || errorAgree){
                                         return <div className="alert alert-danger">
